@@ -1,14 +1,13 @@
 """Supabase-backed market data repository."""
 
 from pathlib import Path
-import os
 from typing import Any
 
 import pandas as pd
 from dotenv import load_dotenv
 from supabase import create_client
 
-from config.settings import PROJECT_ROOT, SUPABASE_TABLE
+from config.settings import PROJECT_ROOT, SUPABASE_TABLE, get_setting
 from src.domain.enums import Granularity, Scenario
 from src.domain.node_catalog import NODE_CATALOG
 from src.infrastructure.repositories.market_repository import MarketRepository
@@ -30,11 +29,11 @@ class SupabaseMarketRepository(MarketRepository):
 
     def __init__(self, table_name: str = SUPABASE_TABLE, page_size: int = 1_000) -> None:
         load_dotenv(PROJECT_ROOT / ".env")
-        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_url = get_setting("SUPABASE_URL")
         supabase_key = (
-            os.getenv("SUPABASE_SECRET_KEY")
-            or os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-            or os.getenv("SUPABASE_PUBLISHABLE_KEY")
+            get_setting("SUPABASE_SECRET_KEY")
+            or get_setting("SUPABASE_SERVICE_ROLE_KEY")
+            or get_setting("SUPABASE_PUBLISHABLE_KEY")
         )
         if not supabase_url or not supabase_key:
             msg = "Missing SUPABASE_URL and Supabase key in environment or .env"
