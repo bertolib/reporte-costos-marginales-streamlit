@@ -2,9 +2,26 @@
 
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
+
+
+MONTH_ABBREVIATIONS = {
+    1: "ene",
+    2: "feb",
+    3: "mar",
+    4: "abr",
+    5: "may",
+    6: "jun",
+    7: "jul",
+    8: "ago",
+    9: "sept",
+    10: "oct",
+    11: "nov",
+    12: "dic",
+}
 
 
 def load_css() -> None:
@@ -34,7 +51,16 @@ def render_sidebar_context(
         st.sidebar.metric("Ultima actualizacion del archivo", file_updated.strftime("%d-%m-%Y"))
     if latest_date is not None:
         st.sidebar.metric(latest_label, latest_date.strftime("%d-%m-%Y"))
+        st.sidebar.markdown(
+            f"<p class='sidebar-update-note'>App fue actualizada: {_format_app_update_date()}</p>",
+            unsafe_allow_html=True,
+        )
     st.sidebar.caption(mode_caption)
+
+
+def _format_app_update_date() -> str:
+    today = datetime.now(ZoneInfo("America/Santiago")).date()
+    return f"{today.day} {MONTH_ABBREVIATIONS[today.month]} {today.year}"
 
 
 def format_delta(value: float | None) -> str:
