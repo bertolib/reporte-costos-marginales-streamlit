@@ -59,8 +59,18 @@ def render_market_filters(
         )
 
         if selected_period == "Personalizado":
-            start_date = st.date_input("Desde", value=default_start, key=f"{key_prefix}_start")
-            end_date = st.date_input("Hasta", value=max_date, key=f"{key_prefix}_end")
+            start_date = st.date_input(
+                "Desde",
+                value=default_start,
+                format="DD/MM/YYYY",
+                key=f"{key_prefix}_start",
+            )
+            end_date = st.date_input(
+                "Hasta",
+                value=max_date,
+                format="DD/MM/YYYY",
+                key=f"{key_prefix}_end",
+            )
             invalid_period = pd.Timestamp(start_date) > pd.Timestamp(end_date)
             if invalid_period:
                 st.error("Periodo invalido: la fecha Desde no puede ser posterior a la fecha Hasta.")
