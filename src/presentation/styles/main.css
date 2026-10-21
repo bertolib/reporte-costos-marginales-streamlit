@@ -150,3 +150,16 @@ div[data-testid="stElementContainer"]:has([class*="st-key-"][class*="_filters_ba
     font-size: 1.45rem;
   }
 }
+
+/* On phones, keep charts as read-only views controlled by the page filters. */
+@media (max-width: 767px) {
+  [data-testid="stPlotlyChart"],
+  [data-testid="stPlotlyChart"] * {
+    pointer-events: none !important;
+  }
+
+  [data-testid="stPlotlyChart"] .modebar,
+  [data-testid="stPlotlyChart"] [data-testid="stElementToolbar"] {
+    display: none !important;
+  }
+}
