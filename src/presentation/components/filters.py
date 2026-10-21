@@ -1,5 +1,8 @@
 """Reusable filter controls."""
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import pandas as pd
 import streamlit as st
 
@@ -124,6 +127,14 @@ def _build_period_options(observations: pd.DataFrame) -> dict[str, tuple[pd.Time
         end = min((start + pd.offsets.MonthEnd(0)).normalize(), max_date)
         label = f"{MONTH_NAMES[start.month]} {start.year}"
         options[label] = (start, end)
+
+    current_year = datetime.now(ZoneInfo("America/Santiago")).year
+    for year, description in ((current_year, "año actual"), (current_year - 1, "año anterior")):
+        start = pd.Timestamp(year=year, month=1, day=1)
+        year_end = pd.Timestamp(year=year, month=12, day=31)
+        if min_date <= year_end and max_date >= start:
+            end = min(max_date, year_end) if year == current_year else year_end
+            options[f"Todo {year} ({description})"] = (start, end)
 
     return options
 
