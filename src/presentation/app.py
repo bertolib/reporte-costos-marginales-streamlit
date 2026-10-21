@@ -26,19 +26,20 @@ def _source_label() -> str:
 
 def _source_token() -> str:
     if DATA_SOURCE == "supabase":
-        return f"{SUPABASE_TABLE}:supabase"
+        latest_timestamp = _repository().get_last_update()
+        return f"{SUPABASE_TABLE}:supabase:{latest_timestamp}"
     if DEFAULT_EXCEL_PATH.exists():
         return f"{DEFAULT_EXCEL_PATH}:{DEFAULT_EXCEL_PATH.stat().st_mtime}"
     return f"{DEFAULT_EXCEL_PATH}:missing"
 
 
-@st.cache_data(show_spinner="Leyendo datos horarios...")
+@st.cache_data(ttl=300, show_spinner="Leyendo datos horarios...")
 def _load_hourly_data(source_token: str):
     repository = _repository()
     return repository.load_observations(Granularity.HOURLY)
 
 
-@st.cache_data(show_spinner="Leyendo datos quinceminutales...")
+@st.cache_data(ttl=300, show_spinner="Leyendo datos quinceminutales...")
 def _load_fifteen_minutes_data(source_token: str):
     repository = _repository()
     return repository.load_observations(Granularity.FIFTEEN_MINUTES)
