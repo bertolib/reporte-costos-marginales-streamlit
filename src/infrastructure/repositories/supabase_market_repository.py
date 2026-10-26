@@ -1,6 +1,7 @@
 """Supabase-backed market data repository."""
 
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import pandas as pd
@@ -48,10 +49,7 @@ class SupabaseMarketRepository(MarketRepository):
             msg = f"Unsupported Supabase granularity: {granularity}"
             raise ValueError(msg)
 
-        observations = self._load_fifteen_minutes()
-        if granularity == Granularity.FIFTEEN_MINUTES:
-            return observations
-        return self._to_hourly(observations)
+        return self._load_fifteen_minutes(granularity)
 
     def get_last_update(self) -> pd.Timestamp | None:
         """Return latest timestamp available in Supabase."""
@@ -66,13 +64,22 @@ class SupabaseMarketRepository(MarketRepository):
             return None
         return pd.to_datetime(response.data[0]["timestamp"], errors="coerce")
 
-    def _load_fifteen_minutes(self) -> pd.DataFrame:
+    def _load_fifteen_minutes(
+        self, granularity: Granularity = Granularity.FIFTEEN_MINUTES
+    ) -> pd.DataFrame:
         records = self._fetch_all_records()
         if not records:
             return self._empty_observations()
 
         wide = pd.DataFrame(records)
         wide["timestamp"] = pd.to_datetime(wide["timestamp"], errors="coerce")
+        # Aggregate before expanding the five series to avoid holding the full
+        # 15-minute long table in memory when opening the hourly dashboard.
+        if granularity == Granularity.HOURLY:
+            wide["timestamp"] = wide["timestamp"].dt.floor("h")
+            value_columns = [column for column in SUPABASE_SERIES_COLUMNS if column in wide]
+            wide[value_columns] = wide[value_columns].apply(pd.to_numeric, errors="coerce")
+            wide = wide.groupby(["timestamp", "source_file"], as_index=False)[value_columns].mean()
         frames = []
         for source_column, (node_id, unit) in SUPABASE_SERIES_COLUMNS.items():
             if source_column not in wide.columns:
@@ -86,7 +93,7 @@ class SupabaseMarketRepository(MarketRepository):
                     "zone": node.zone,
                     "value": pd.to_numeric(wide[source_column], errors="coerce"),
                     "unit": unit,
-                    "granularity": Granularity.FIFTEEN_MINUTES.value,
+                    "granularity": granularity.value,
                     "scenario": Scenario.ACTUAL.value,
                     "source": wide.get("source_file", "supabase"),
                 }
@@ -103,22 +110,30 @@ class SupabaseMarketRepository(MarketRepository):
             "source_file",
             *SUPABASE_SERIES_COLUMNS.keys(),
         ]
-        records: list[dict[str, Any]] = []
-        start = 0
-        while True:
+        def fetch_page(start: int, *, count: bool = False):
             end = start + self.page_size - 1
-            response = (
+            return (
                 self.client.table(self.table_name)
-                .select(",".join(columns))
+                .select(",".join(columns), **({"count": "exact"} if count else {}))
                 .order("timestamp")
                 .range(start, end)
                 .execute()
             )
-            batch = response.data or []
-            records.extend(batch)
-            if len(batch) < self.page_size:
-                break
-            start += self.page_size
+
+        first = fetch_page(0, count=True)
+        records = first.data or []
+        total = first.count
+        if total is None:
+            raise RuntimeError("Supabase did not return the historical record count")
+        if len(records) < min(total, self.page_size):
+            raise RuntimeError("Supabase returned an incomplete historical page")
+        # Bound concurrency so a cold cache does not require dozens of serial
+        # network round trips. map preserves timestamp page order.
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            for response in executor.map(fetch_page, range(self.page_size, total, self.page_size)):
+                records.extend(response.data or [])
+        if len(records) != total:
+            raise RuntimeError("Supabase historical download is incomplete; please retry")
         return records
 
     @staticmethod

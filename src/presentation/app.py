@@ -33,13 +33,13 @@ def _source_token() -> str:
     return f"{DEFAULT_EXCEL_PATH}:missing"
 
 
-@st.cache_data(ttl=300, show_spinner="Leyendo datos horarios...")
+@st.cache_data(ttl=300, max_entries=2, show_spinner="Leyendo datos horarios...")
 def _load_hourly_data(source_token: str):
     repository = _repository()
     return repository.load_observations(Granularity.HOURLY)
 
 
-@st.cache_data(ttl=300, show_spinner="Leyendo datos quinceminutales...")
+@st.cache_data(ttl=300, max_entries=2, show_spinner="Leyendo datos quinceminutales...")
 def _load_fifteen_minutes_data(source_token: str):
     repository = _repository()
     return repository.load_observations(Granularity.FIFTEEN_MINUTES)
