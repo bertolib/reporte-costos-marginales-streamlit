@@ -21,6 +21,10 @@ def render_executive_dashboard(observations: pd.DataFrame) -> None:
     """Render executive overview."""
     st.title(APP_TITLE)
     st.caption("Seguimiento de costos marginales del Sistema Electrico Nacional")
+    st.caption(
+        "Unidades: Mejillones 110, Chacaya 110, Alto Jahuel 220 y Charrúa 220 en USD/MWh; "
+        "Chaca 110 (CLP) en CLP/kWh."
+    )
 
     filtered = render_market_filters(
         observations,

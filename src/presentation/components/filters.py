@@ -146,7 +146,8 @@ def _node_options(observations: pd.DataFrame, nodes: list[str]) -> dict[str, str
 def _node_label(node_name: str, observations: pd.DataFrame) -> str:
     zone = observations.loc[observations["node_name"] == node_name, "zone"].dropna()
     suffix = _zone_suffix(zone.iloc[0] if not zone.empty else "")
-    return f"{node_name} - {suffix}" if suffix else node_name
+    display_name = f"{node_name} (CLP)" if node_name == "Chaca 110" else node_name
+    return f"{display_name} - {suffix}" if suffix else display_name
 
 
 def _zone_suffix(zone: str) -> str:
