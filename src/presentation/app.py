@@ -122,4 +122,7 @@ def run_app() -> None:
         mode_caption = "Modo actual: Supabase" if DATA_SOURCE == "supabase" else "Modo actual: Excel read-only"
         if use_snapshot:
             mode_caption = "Modo actual: respaldo verificado (sin conexión)"
-        render_sidebar_context(observations, source_label, mode_caption=mode_caption)
+        render_sidebar_context(
+            observations, source_label, mode_caption=mode_caption,
+            data_loaded_at=observations.attrs.get("data_loaded_at"),
+        )

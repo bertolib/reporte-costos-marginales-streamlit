@@ -102,12 +102,18 @@ class SupabaseMarketRepository(MarketRepository):
 
         if not frames:
             return self._empty_observations()
-        return pd.concat(frames, ignore_index=True).sort_values(["timestamp", "node_name", "unit"])
+        result = pd.concat(frames, ignore_index=True).sort_values(["timestamp", "node_name", "unit"])
+        if "loaded_at" in records[0]:
+            result.attrs["data_loaded_at"] = pd.to_datetime(
+                [record.get("loaded_at") for record in records], utc=True, errors="coerce"
+            ).max()
+        return result
 
     def _fetch_all_records(self) -> list[dict[str, Any]]:
         columns = [
             "timestamp",
             "source_file",
+            "loaded_at",
             *SUPABASE_SERIES_COLUMNS.keys(),
         ]
         def fetch_page(start: int, *, count: bool = False):

@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import pandas as pd
 import streamlit as st
@@ -36,6 +35,7 @@ def render_sidebar_context(
     latest_date: pd.Timestamp | None = None,
     latest_label: str = "Ultimo dato con informacion",
     mode_caption: str = "Modo actual: Excel read-only",
+    data_loaded_at: pd.Timestamp | None = None,
 ) -> None:
     """Render source and update context in sidebar."""
     if latest_date is None and observations is not None:
@@ -51,16 +51,20 @@ def render_sidebar_context(
         st.sidebar.metric("Ultima actualizacion del archivo", file_updated.strftime("%d-%m-%Y"))
     if latest_date is not None:
         st.sidebar.metric(latest_label, latest_date.strftime("%d-%m-%Y"))
-        st.sidebar.markdown(
-            f"<p class='sidebar-update-note'>App fue actualizada: {_format_app_update_date()}</p>",
-            unsafe_allow_html=True,
-        )
+    st.sidebar.markdown(
+        f"<p class='sidebar-update-note'>Ultima carga de datos: {_format_app_update_date(data_loaded_at)}</p>",
+        unsafe_allow_html=True,
+    )
     st.sidebar.caption(mode_caption)
 
 
-def _format_app_update_date() -> str:
-    today = datetime.now(ZoneInfo("America/Santiago")).date()
-    return f"{today.day} {MONTH_ABBREVIATIONS[today.month]} {today.year}"
+def _format_app_update_date(loaded_at: pd.Timestamp | None) -> str:
+    if loaded_at is None or pd.isna(loaded_at):
+        return "sin informacion"
+    timestamp = pd.Timestamp(loaded_at)
+    if timestamp.tzinfo is not None:
+        timestamp = timestamp.tz_convert("America/Santiago")
+    return f"{timestamp.day} {MONTH_ABBREVIATIONS[timestamp.month]} {timestamp.year}"
 
 
 def format_delta(value: float | None) -> str:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime, timezone
 import math
 import os
 import sys
@@ -30,6 +31,9 @@ def main() -> None:
     csv_path = _find_latest_history_file()
     df = pd.read_csv(csv_path)
     records = _to_supabase_records(df)
+    loaded_at = datetime.now(timezone.utc).isoformat()
+    for record in records:
+        record["loaded_at"] = loaded_at
 
     client = create_client(supabase_url, supabase_key)
     for start in range(0, len(records), BATCH_SIZE):
