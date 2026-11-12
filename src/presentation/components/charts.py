@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from src.analytics.aggregations import daily_average, daily_bess_arbitrage, heatmap_matrix, hourly_profile, monthly_average
+from src.domain.units import report_cost_unit
 
 
 PLOTLY_TEMPLATE = "plotly_white"
@@ -40,7 +41,7 @@ def daily_trend_chart(observations: pd.DataFrame) -> go.Figure:
         x="date",
         y="average_cost",
         color="node_name",
-        labels={"date": "Fecha", "average_cost": "USD/MWh", "node_name": "Barra"},
+        labels={"date": "Fecha", "average_cost": report_cost_unit(observations["node_name"]), "node_name": "Barra"},
         template=PLOTLY_TEMPLATE,
     )
     fig.update_layout(
@@ -68,7 +69,7 @@ def monthly_chart(observations: pd.DataFrame) -> go.Figure:
         y="average_cost",
         color="node_name",
         barmode="group",
-        labels={"month": "Mes", "average_cost": "USD/MWh", "node_name": "Barra"},
+        labels={"month": "Mes", "average_cost": report_cost_unit(observations["node_name"]), "node_name": "Barra"},
         template=PLOTLY_TEMPLATE,
     )
     fig.update_layout(
@@ -95,7 +96,7 @@ def last_six_months_average_chart(observations: pd.DataFrame, period_end: pd.Tim
         color="node_name",
         barmode="group",
         text="average_cost",
-        labels={"month": "Mes", "average_cost": "USD/MWh", "node_name": "Barra"},
+        labels={"month": "Mes", "average_cost": report_cost_unit(observations["node_name"]), "node_name": "Barra"},
         template=PLOTLY_TEMPLATE,
     )
     fig.update_traces(texttemplate="%{text:.1f}", textposition="outside", cliponaxis=False)
@@ -119,7 +120,7 @@ def hourly_profile_chart(observations: pd.DataFrame) -> go.Figure:
         y="average_cost",
         color="node_name",
         markers=True,
-        labels={"hour": "Hora", "average_cost": "USD/MWh", "node_name": "Barra"},
+        labels={"hour": "Hora", "average_cost": report_cost_unit(observations["node_name"]), "node_name": "Barra"},
         template=PLOTLY_TEMPLATE,
     )
     show_legend = data["node_name"].nunique() > 1 if not data.empty else False
@@ -216,6 +217,7 @@ def monthly_cmg_coal_chart(daily_context: pd.DataFrame) -> go.Figure:
 
 def bess_arbitrage_chart(observations: pd.DataFrame) -> go.Figure:
     """Return daily gross BESS arbitrage spread chart."""
+    unit = report_cost_unit(observations["node_name"])
     data = daily_bess_arbitrage(observations)
     fig = go.Figure()
     if data.empty:
@@ -259,7 +261,7 @@ def bess_arbitrage_chart(observations: pd.DataFrame) -> go.Figure:
                     "Hora maxima: %{customdata[3]:.0f}<br>"
                     "Spread diario: %{customdata[4]:.2f} USD/MWh"
                     "<extra>%{fullData.name}</extra>"
-                ),
+                ).replace("USD/MWh", unit),
             )
         )
         fig.add_trace(
@@ -273,7 +275,7 @@ def bess_arbitrage_chart(observations: pd.DataFrame) -> go.Figure:
                     "Fecha: %{x|%d-%m-%Y}<br>"
                     "Prom. mov. 7d: %{y:.2f} USD/MWh"
                     "<extra>%{fullData.name}</extra>"
-                ),
+                ).replace("USD/MWh", unit),
             )
         )
 
@@ -281,7 +283,7 @@ def bess_arbitrage_chart(observations: pd.DataFrame) -> go.Figure:
         y=average_spread,
         line_dash="dash",
         line_color="#1F2937",
-        annotation_text=f"Promedio periodo: {average_spread:.1f} USD/MWh",
+        annotation_text=f"Promedio periodo: {average_spread:.1f} {unit}",
         annotation_position="top left",
     )
     fig.update_layout(
@@ -291,7 +293,7 @@ def bess_arbitrage_chart(observations: pd.DataFrame) -> go.Figure:
         legend=_compact_legend(),
         margin=dict(l=10, r=10, t=20, b=10),
         height=370,
-        yaxis_title="Spread bruto diario (USD/MWh)",
+        yaxis_title=f"Spread bruto diario ({unit})",
         xaxis_title="Fecha",
     )
     return fig

@@ -2,6 +2,8 @@
 
 import pandas as pd
 
+from src.domain.units import report_cost_unit
+
 
 class InsightService:
     """Generate transparent, data-backed executive observations."""
@@ -12,6 +14,7 @@ class InsightService:
             return ["No hay datos disponibles para el periodo seleccionado."]
 
         insights: list[str] = []
+        unit = report_cost_unit(observations["node_name"])
         latest = observations["timestamp"].max()
         last_7 = observations[observations["timestamp"] > latest - pd.Timedelta(days=7)]
         previous_7 = observations[
@@ -32,7 +35,7 @@ class InsightService:
 
         peak = observations.loc[observations["value"].idxmax()]
         insights.append(
-            f"El máximo del periodo fue {peak['value']:.2f} USD/MWh en "
+            f"El máximo del periodo fue {peak['value']:.2f} {unit} en "
             f"{peak['node_name']} el {peak['timestamp']:%d-%m-%Y %H:%M}."
         )
 
@@ -40,7 +43,7 @@ class InsightService:
         if spread.shape[0] >= 2:
             insights.append(
                 f"La barra con mayor promedio fue {spread.index[0]} y la menor fue "
-                f"{spread.index[-1]}, con una brecha promedio de {spread.iloc[0] - spread.iloc[-1]:.2f} USD/MWh."
+                f"{spread.index[-1]}, con una brecha promedio de {spread.iloc[0] - spread.iloc[-1]:.2f} {unit}."
             )
 
         return insights

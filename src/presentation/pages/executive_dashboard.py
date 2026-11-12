@@ -7,6 +7,7 @@ from src.analytics.aggregations import daily_bess_arbitrage
 from src.application.services.insight_service import InsightService
 from src.application.services.kpi_service import KpiService
 from config.settings import APP_TITLE
+from src.domain.units import report_cost_unit
 from src.presentation.components.charts import (
     bess_arbitrage_chart,
     daily_trend_chart,
@@ -32,12 +33,13 @@ def render_executive_dashboard(observations: pd.DataFrame) -> None:
         default_node_names=["Mejillones 110"],
     )
     kpis = KpiService().build_executive_kpis(filtered)
+    unit = report_cost_unit(filtered["node_name"])
 
     render_kpi_grid(
         [
-            ("Promedio", f"{kpis.average_cost:,.2f}", "USD/MWh"),
-            ("Maximo", f"{kpis.max_cost:,.2f}", "USD/MWh"),
-            ("Minimo", f"{kpis.min_cost:,.2f}", "USD/MWh"),
+            ("Promedio", f"{kpis.average_cost:,.2f}", unit),
+            ("Maximo", f"{kpis.max_cost:,.2f}", unit),
+            ("Minimo", f"{kpis.min_cost:,.2f}", unit),
             ("Var. semanal", format_delta(kpis.weekly_variation_pct), None),
             _monthly_variation_kpi(filtered, kpis.monthly_variation_pct),
             ("Registros", f"{kpis.observations:,}", None),
@@ -64,8 +66,8 @@ def render_executive_dashboard(observations: pd.DataFrame) -> None:
     if arbitrage.empty:
         render_kpi_grid(
             [
-                ("Spread promedio diario", "s/i", "USD/MWh"),
-                ("Spread maximo del periodo", "s/i", "USD/MWh"),
+                ("Spread promedio diario", "s/i", unit),
+                ("Spread maximo del periodo", "s/i", unit),
                 ("Dias sobre percentil 75", "0", None),
             ]
         )
@@ -74,9 +76,9 @@ def render_executive_dashboard(observations: pd.DataFrame) -> None:
         days_above_p75 = arbitrage[arbitrage["spread"] > spread_p75]["date"].nunique()
         render_kpi_grid(
             [
-                ("Spread promedio diario", f"{arbitrage['spread'].mean():,.2f}", "USD/MWh"),
-                ("Spread maximo del periodo", f"{arbitrage['spread'].max():,.2f}", "USD/MWh"),
-                (f"Dias sobre percentil 75 ({spread_p75:,.2f} USD/MWh)", f"{days_above_p75:,}", None),
+                ("Spread promedio diario", f"{arbitrage['spread'].mean():,.2f}", unit),
+                ("Spread maximo del periodo", f"{arbitrage['spread'].max():,.2f}", unit),
+                (f"Dias sobre percentil 75 ({spread_p75:,.2f} {unit})", f"{days_above_p75:,}", None),
             ]
         )
 
