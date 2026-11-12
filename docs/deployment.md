@@ -11,9 +11,9 @@ Si Streamlit lo suspende por inactividad, abrir el reporte y pulsar
 `Yes, get this app back up!`.
 
 Los datos de costos marginales se leen desde Supabase. Ultima carga verificada:
-datos hasta 2026-10-18 23:45 (archivo `2026_10_REAL-DEF.tsv`,
-cargado el 2026-10-26). Se verificaron los 1.728 registros de octubre contra
-Supabase: 1.344 actualizados y 384 nuevos; total historico de 62.976 registros.
+datos hasta 2026-10-31 23:45 (archivo `2026_10_REAL-DEF (1).tsv`,
+cargado el 2026-11-12). Se verificaron los 2.976 registros de octubre contra
+Supabase: 1.728 actualizados y 1.248 nuevos; total historico de 64.224 registros.
 Se guardo un respaldo previo de octubre en `output/processed/`.
 La seccion Contexto Mercado Electrico puede depender
 de archivos locales que aun no se han migrado a la nube.
@@ -29,7 +29,9 @@ resolucion DNS para el servidor de Supabase desde el entorno local.
 No se pudo verificar el estado administrativo del proyecto sin iniciar sesion.
 
 La app incluye `database/snapshots/cmg_verified.csv.gz`, un respaldo comprimido
-de los 62.976 registros historicos verificados hasta 2026-10-18 23:45.
+de los 64.224 registros historicos verificados hasta 2026-10-31 23:45,
+renovado el 2026-11-12. La conexion con Supabase fue restaurada y verificada
+ese mismo dia.
 Si falla la conexion o la API de Supabase, el resumen y el detalle usan ese
 respaldo y muestran un aviso con su fecha de corte. La siguiente ejecucion
 vuelve a intentar la fuente en linea automaticamente.
