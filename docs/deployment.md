@@ -21,3 +21,17 @@ de archivos locales que aun no se han migrado a la nube.
 Al recargar el reporte, la fecha mas reciente de Supabase forma parte de la
 clave de cache. Ademas, los datos en cache vencen a los cinco minutos para
 reflejar correcciones dentro del mismo rango de fechas.
+
+## Recuperacion ante caidas de Supabase
+
+El 2026-11-12 se verifico un error de conexion en la web y un fallo de
+resolucion DNS para el servidor de Supabase desde el entorno local.
+No se pudo verificar el estado administrativo del proyecto sin iniciar sesion.
+
+La app incluye `database/snapshots/cmg_verified.csv.gz`, un respaldo comprimido
+de los 62.976 registros historicos verificados hasta 2026-10-18 23:45.
+Si falla la conexion o la API de Supabase, el resumen y el detalle usan ese
+respaldo y muestran un aviso con su fecha de corte. La siguiente ejecucion
+vuelve a intentar la fuente en linea automaticamente.
+El respaldo debe renovarse despues de cada carga validada en Supabase;
+no contiene credenciales ni reemplaza la base en linea.
