@@ -89,8 +89,15 @@ def export_context(destination: Path = CONTEXT_DIR) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--publicar", action="store_true", help="Publicar solo los datos de contexto en GitHub.")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--publicar", action="store_true", help="Publicar solo los datos de contexto en GitHub.")
+    mode.add_argument("--solo-validar", action="store_true", help="Validar los Excel sin cambiar datos publicados ni conectar a Supabase.")
     args = parser.parse_args()
+    if args.solo_validar:
+        with TemporaryDirectory() as temporary:
+            export_context(Path(temporary) / "context")
+        print("VALIDACION CORRECTA. No se modificaron los datos publicados ni Supabase.")
+        return
     if args.publicar:
         from scripts.actualizar_web import check_publication
         check_publication()

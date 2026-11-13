@@ -15,7 +15,7 @@ Exportacion verificada el 2026-11-13 a partir de los Excel existentes:
 
 | Informacion | Archivo local | Corte disponible |
 | --- | --- | --- |
-| Generacion por tecnologia | Generacion por tipo de tecnologia.xlsx (con acento en el nombre real) | 2026-03-04 |
+| Generacion por tecnologia | Generación por tipo de tecnologia.xlsx | 2026-03-04 |
 | Precio carbon | CM acumulado 2025-2026.xlsx | 2026-03-04 |
 | CMg diario y mensual | CM acumulado 2025-2026.xlsx | 2026-09-21 |
 | Ultima emision de proyecciones CEN | CM acumulado 2025-2026.xlsx | agosto 2026 |
@@ -45,25 +45,57 @@ actualizandose por el proceso TSV existente. El contexto se renueva por separado
 
 ## Actualizar el contexto
 
-1. Actualice los dos Excel en la carpeta principal conservando los nombres
-   configurados en `config/settings.py`.
-2. Para generar y revisar la exportacion local:
+1. Actualice las fuentes que correspondan en la carpeta principal del proyecto:
+   - `Generación por tipo de tecnologia.xlsx`: hoja `Hoja1`, con la tabla diaria
+     por tecnologia. Si actualiza los datos de origen, actualice tambien la
+     tabla dinamica antes de guardar.
+   - `CM acumulado 2025-2026.xlsx`: hoja ` CMg Diario`, que contiene el historico
+     de CMg, combustibles y la matriz `PROYECCIONES CEN`.
+   Puede renovar solo uno de los Excel; el otro conserva su informacion actual.
+   Deben permanecer ambos archivos, con sus nombres, hojas y estructura actuales.
+   Guarde los libros en Excel despues de actualizar formulas o tablas dinamicas;
+   el programa lee los valores guardados, no recalcula Excel.
+2. Opcionalmente, compruebe las fuentes sin cambiar los datos publicados:
 
    ```powershell
-   python scripts/export_market_context.py
+   python scripts/export_market_context.py --solo-validar
    ```
 
-3. Para exportar y publicar en un solo paso, desde `main` limpio y sincronizado:
+3. Haga doble clic en `Actualizar_contexto_web.bat` en la carpeta principal.
+   Alternativamente, para exportar y publicar desde PowerShell, desde `main`
+   limpio y sincronizado:
 
    ```powershell
    python scripts/export_market_context.py --publicar
    ```
 
-El segundo comando requiere comenzar sin cambios pendientes: si primero hizo
-una exportacion para revisar, publique esos archivos revisados mediante Git.
+4. Espere `CONTEXTO EXPORTADO Y VERIFICADO` y `CONTEXTO PUBLICADO EN GITHUB`.
+   Recargue Streamlit y revise las fechas de corte de cada seccion. Si el
+   despliegue sigue ejecutando la version anterior, reinicie la app desde
+   Streamlit Cloud.
+
+La validacion es opcional: la publicacion siempre valida antes de reemplazar
+las tablas. `--solo-validar` utiliza una carpeta temporal que se elimina y no
+deja cambios pendientes en Git. Sin ninguna opcion, el script exporta a
+`database/market_context` solo localmente; si uso ese modo, revise y publique
+esos archivos mediante Git antes de volver a utilizar `--publicar`.
 El comando con `--publicar` guarda un commit solo de `database/market_context`
 y lo envia a `origin/main`. El despliegue recoge las nuevas tablas y la cache
 cambia al actualizarse los archivos.
+
+Los Excel originales no se publican. No se descarga informacion nueva del CEN
+automaticamente: primero debe actualizar los libros locales. Ejecutar el
+proceso con los mismos Excel conserva los mismos cortes de informacion.
+
+## Dos procesos independientes
+
+| Que actualizar | Entrada | Ejecutable | Destino |
+| --- | --- | --- | --- |
+| Costos marginales de las barras | TSV en `data` | `Actualizar_datos_web.bat` | Supabase y respaldo |
+| Contexto Mercado Electrico | Los dos Excel de la carpeta principal | `Actualizar_contexto_web.bat` | Tablas de contexto publicadas en GitHub |
+
+La unica conexion entre ambos es la comparacion con el promedio real de
+Mejillones: el contexto lee esa serie del reporte actualizado, sin modificarla.
 
 La matriz CEN mantiene la misma lectura de la version local: las ultimas 19
 filas bajo la cabecera localizada en la hoja ` CMg Diario`. Si cambia la

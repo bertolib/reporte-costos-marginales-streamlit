@@ -91,3 +91,26 @@ app.run_app()
     names = [trace["name"] for trace in evolution["data"]]
     assert "Real oct-26" in names
     assert "Real nov-26" in names
+
+
+def test_validation_mode_uses_temporary_destination_and_does_not_publish(monkeypatch):
+    destinations = []
+
+    def fake_export(destination):
+        destinations.append(destination)
+        destination.mkdir()
+        (destination / "test.txt").write_text("temporary")
+
+    monkeypatch.setattr(exporter, "export_context", fake_export)
+    monkeypatch.setattr(exporter.sys, "argv", ["export_market_context.py", "--solo-validar"])
+    exporter.main()
+    assert len(destinations) == 1
+    assert destinations[0] != CONTEXT_DIR
+    assert not destinations[0].exists()
+
+
+def test_validation_and_publication_cannot_be_combined(monkeypatch):
+    monkeypatch.setattr(exporter.sys, "argv", ["export_market_context.py", "--solo-validar", "--publicar"])
+    with pytest.raises(SystemExit) as result:
+        exporter.main()
+    assert result.value.code == 2
