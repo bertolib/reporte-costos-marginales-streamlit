@@ -11,12 +11,15 @@ Si Streamlit lo suspende por inactividad, abrir el reporte y pulsar
 `Yes, get this app back up!`.
 
 Los datos de costos marginales se leen desde Supabase. Ultima carga verificada:
-datos hasta 2026-11-03 23:45 (archivo `2026_11_REAL-DEF.tsv`,
-cargado el 2026-11-12). Se verificaron los 288 registros nuevos de noviembre
-contra Supabase; total historico de 64.512 registros.
+datos hasta 2026-11-05 23:45, con ultima carga el 2026-11-13 y un total
+historico de 64.704 registros, segun el respaldo verificado vigente.
 Se guardo un respaldo previo de la ventana actualizada en `output/processed/`.
-La seccion Contexto Mercado Electrico puede depender
-de archivos locales que aun no se han migrado a la nube.
+La seccion Contexto Mercado Electrico utiliza tablas compactas verificadas en
+`database/market_context/` cuando los Excel locales no estan disponibles.
+Los costos marginales reales usados para comparar proyecciones provienen de
+la misma fuente Supabase o respaldo que utiliza el resumen.
+Consulte `docs/contexto_mercado.md` para ver fuentes, fechas de corte y el
+procedimiento de actualizacion independiente de estos datos.
 
 Al recargar el reporte, la fecha mas reciente de Supabase forma parte de la
 clave de cache. Ademas, los datos en cache vencen a los cinco minutos para
@@ -29,9 +32,9 @@ resolucion DNS para el servidor de Supabase desde el entorno local.
 No se pudo verificar el estado administrativo del proyecto sin iniciar sesion.
 
 La app incluye `database/snapshots/cmg_verified.csv.gz`, un respaldo comprimido
-de los 64.512 registros historicos verificados hasta 2026-11-03 23:45,
-renovado el 2026-11-12. La conexion con Supabase fue restaurada y verificada
-ese mismo dia.
+de los 64.704 registros historicos verificados hasta 2026-11-05 23:45,
+renovado el 2026-11-13. La conexion con Supabase fue restaurada y verificada
+el 2026-11-12.
 Si falla la conexion o la API de Supabase, el resumen y el detalle usan ese
 respaldo y muestran un aviso con su fecha de corte. La siguiente ejecucion
 vuelve a intentar la fuente en linea automaticamente.

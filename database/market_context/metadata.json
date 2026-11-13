@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "exported_at": "2026-11-13T12:10:09.572327+00:00",
+  "sources": {
+    "CM acumulado 2025-2026.xlsx": {
+      "sha256": "dc5bc07fe97ba80be8cacbfe4661c16dfd0949f1ea65c490c763b6708b970bb5",
+      "modified_at": "2026-09-30T15:23:00.786337+00:00"
+    },
+    "Generación por tipo de tecnologia.xlsx": {
+      "sha256": "90500b5cb49ca130f44f948a64350ab95787959eea2c275d0b7fc9a7de866a05",
+      "modified_at": "2026-03-05T19:58:10.453091+00:00"
+    }
+  },
+  "datasets": {
+    "generation": {
+      "rows": 12787,
+      "sha256": "770ac456206008dcd90a3d7eb10184d7d261361e55ccc2d446d6b576181b3d01",
+      "bytes": 99457,
+      "date_min": "2024-05-01",
+      "date_max": "2026-03-04"
+    },
+    "daily_context": {
+      "rows": 5413,
+      "sha256": "45ad799de0f56a1affc9b2c29969a71dce3399e59ce63d18d84199360256e391",
+      "bytes": 67966,
+      "date_min": "2012-11-01",
+      "date_max": "2027-08-27"
+    },
+    "projections": {
+      "rows": 14,
+      "sha256": "755ccf7fcbce98c51149d34357519f76124f927944c6adf4b820cf063415c9d2",
+      "bytes": 1118
+    }
+  }
+}

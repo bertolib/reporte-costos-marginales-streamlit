@@ -4,10 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from config.settings import DEFAULT_EXCEL_PATH, GENERATION_EXCEL_PATH
 from src.analytics.aggregations import monthly_average
-from src.infrastructure.repositories.excel_market_repository import ExcelMarketRepository
-from src.infrastructure.repositories.generation_repository import ENERGY_COLUMNS, GenerationRepository
+from src.infrastructure.repositories.generation_repository import ENERGY_COLUMNS
+from src.infrastructure.repositories.market_context_repository import MarketContextRepository
 from src.presentation.components.charts import daily_cmg_history_chart, monthly_cmg_coal_chart
 from src.presentation.components.layout import render_kpi_grid
 from src.presentation.pages.temporal_comparison import _generation_chart
@@ -31,33 +30,24 @@ MONTH_LABELS = {
 MONTH_NUMBERS = {label: number for number, label in MONTH_LABELS.items()}
 
 
-@st.cache_data(show_spinner="Leyendo generación por tipo de tecnología...")
-def _load_generation_data(source_path: str, source_mtime: float) -> pd.DataFrame:
-    repository = GenerationRepository(GENERATION_EXCEL_PATH)
-    return repository.load_daily_generation()
-
-
-@st.cache_data(show_spinner="Leyendo hoja CMg Diario...")
-def _load_daily_context(source_path: str, source_mtime: float) -> pd.DataFrame:
-    repository = ExcelMarketRepository(DEFAULT_EXCEL_PATH)
-    return repository.load_daily_market_context()
-
-
-@st.cache_data(show_spinner="Leyendo tabla Proyecciones CEN...")
-def _load_cen_projections(source_path: str, source_mtime: float) -> pd.DataFrame:
-    repository = ExcelMarketRepository(DEFAULT_EXCEL_PATH)
-    return repository.load_cen_projections()
+@st.cache_data(ttl=300, max_entries=2, show_spinner="Leyendo contexto del mercado eléctrico...")
+def _load_context_data(source_token: str, source_mode: str):
+    return MarketContextRepository(mode=source_mode).load()
 
 
 def render_marginal_costs(observations: pd.DataFrame) -> None:
     """Render generation, marginal-cost and projection context."""
     st.title("Contexto Mercado Electrico")
-
-    _render_generation_section()
-
-    excel_mtime = DEFAULT_EXCEL_PATH.stat().st_mtime
-    daily_context = _load_daily_context(str(DEFAULT_EXCEL_PATH), excel_mtime)
-    cen_projections = _load_cen_projections(str(DEFAULT_EXCEL_PATH), excel_mtime)
+    repository = MarketContextRepository()
+    try:
+        context = _load_context_data(repository.cache_token(), repository.mode)
+    except (OSError, ValueError, KeyError):
+        st.error("La información de contexto no está disponible en este momento. Intenta nuevamente más tarde.")
+        return
+    st.sidebar.caption(f"Fuente de contexto: {context.source_label}")
+    _render_generation_section(context.generation)
+    daily_context = context.daily_context
+    cen_projections = context.projections
 
     st.subheader("Cmg promedio historico mensual")
     st.caption(_monthly_context_caption(daily_context))
@@ -90,15 +80,9 @@ def render_marginal_costs(observations: pd.DataFrame) -> None:
             st.plotly_chart(_cen_projection_evolution_chart(filtered_evolution, actual_mejillones), width="stretch")
 
 
-def _render_generation_section() -> None:
+def _render_generation_section(generation: pd.DataFrame) -> None:
     st.subheader("Generación por tipo de energía")
 
-    if not GENERATION_EXCEL_PATH.exists():
-        st.error(f"No se encontro el archivo fuente: {GENERATION_EXCEL_PATH.name}")
-        return
-
-    generation_mtime = GENERATION_EXCEL_PATH.stat().st_mtime
-    generation = _load_generation_data(str(GENERATION_EXCEL_PATH), generation_mtime)
     if generation.empty:
         st.warning("No hay datos de generación disponibles.")
         return
