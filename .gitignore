@@ -4,6 +4,7 @@ __pycache__/
 *.pyc
 
 data/
+data_cme/
 output/
 tmp/
 documentacion_CEN/

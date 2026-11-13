@@ -97,6 +97,42 @@ proceso con los mismos Excel conserva los mismos cortes de informacion.
 La unica conexion entre ambos es la comparacion con el promedio real de
 Mejillones: el contexto lee esa serie del reporte actualizado, sin modificarla.
 
+## Actualizar solamente el carbon del grafico mensual
+
+El grafico mensual tiene una serie independiente de cierres diarios de futuros
+de carbon Newcastle (NCFMc1), expresada en USD por tonelada. El CMg mensual
+conserva su fuente del Excel y su unidad USD/MWh. El grafico muestra dos ejes.
+
+Descargue de Investing.com un CSV con frecuencia diaria y columnas `Date` y
+`Price`, conservando el formato original en ingles (fechas mes/dia/ano).
+Guarde un unico CSV dentro de `data_cme`, por ejemplo `data_cme/carbon`.
+El importador busca tambien en subcarpetas y los archivos originales no se
+suben a GitHub. El archivo debe cubrir desde antes del ultimo dato guardado
+para no dejar un hueco en el historico.
+
+Desde la carpeta del proyecto:
+
+```powershell
+python scripts/update_coal_prices.py --solo-validar
+python scripts/update_coal_prices.py --publicar
+```
+
+Si hay varios CSV, elija uno expresamente con `--archivo "ruta/al/archivo.csv"`.
+La publicacion exige `main` limpio y sincronizado, igual que los otros procesos.
+
+Se respaldan los precios anteriores en `output/processed`. El CSV es la fuente
+prioritaria para su ventana de fechas, conservando sesiones de negociacion
+sin rellenar fines de semana; el historico fuera de esa ventana se conserva.
+El programa informa las coincidencias y revisiones respecto al historico.
+
+Los resultados verificados quedan en `database/market_context/coal_prices.csv.gz`
+y `coal_metadata.json`. Su publicacion no modifica Supabase, la generacion,
+las proyecciones ni los valores del CMg. La exportacion general desde Excel
+conserva estos dos archivos y no reemplaza la actualizacion del carbon.
+
+Primera importacion: 224 cierres desde 2026-01-02 hasta 2026-11-12; 44 fechas
+superpuestas (34 coincidentes y 10 revisadas), mas 180 sesiones nuevas.
+
 La matriz CEN mantiene la misma lectura de la version local: las ultimas 19
 filas bajo la cabecera localizada en la hoja ` CMg Diario`. Si cambia la
 estructura del Excel, revise el lector antes de publicar otra exportacion.

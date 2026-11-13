@@ -7,6 +7,7 @@ import streamlit as st
 from src.analytics.aggregations import monthly_average
 from src.infrastructure.repositories.generation_repository import ENERGY_COLUMNS
 from src.infrastructure.repositories.market_context_repository import MarketContextRepository
+from src.infrastructure.repositories.coal_price_repository import COAL_SOURCE, CoalPriceRepository
 from src.presentation.components.charts import daily_cmg_history_chart, monthly_cmg_coal_chart
 from src.presentation.components.layout import render_kpi_grid
 from src.presentation.pages.temporal_comparison import _generation_chart
@@ -35,6 +36,11 @@ def _load_context_data(source_token: str, source_mode: str):
     return MarketContextRepository(mode=source_mode).load()
 
 
+@st.cache_data(ttl=300, max_entries=2, show_spinner="Leyendo precios de carbón...")
+def _load_coal_prices(source_token: str):
+    return CoalPriceRepository().load()
+
+
 def render_marginal_costs(observations: pd.DataFrame) -> None:
     """Render generation, marginal-cost and projection context."""
     st.title("Contexto Mercado Electrico")
@@ -50,8 +56,15 @@ def render_marginal_costs(observations: pd.DataFrame) -> None:
     cen_projections = context.projections
 
     st.subheader("Cmg promedio historico mensual")
-    st.caption(_monthly_context_caption(daily_context))
-    st.plotly_chart(monthly_cmg_coal_chart(daily_context), width="stretch")
+    coal_prices = None
+    try:
+        coal_prices = _load_coal_prices(CoalPriceRepository().cache_token())
+    except (OSError, ValueError, KeyError):
+        st.warning("No se pudo cargar la actualización del carbón. Se muestra el histórico anterior.")
+    st.caption(_monthly_context_caption(daily_context, coal_prices))
+    st.caption(f"CMg: USD/MWh (eje izquierdo) · Carbón Newcastle: USD/t (eje derecho). "
+               f"Fuente de carbón: [Investing.com]({COAL_SOURCE}).")
+    st.plotly_chart(monthly_cmg_coal_chart(daily_context, coal_prices), width="stretch")
 
     st.subheader("Cmg promedio diario 2023 - 2026")
     st.caption(_daily_context_caption(daily_context))
@@ -365,9 +378,10 @@ def _actual_points_for_selected_targets(evolution: pd.DataFrame, actual_mejillon
     return actual_points.dropna(subset=["actual_cmg"]).sort_values("target_month")
 
 
-def _monthly_context_caption(daily_context: pd.DataFrame) -> str:
+def _monthly_context_caption(daily_context: pd.DataFrame, coal_prices: pd.DataFrame | None = None) -> str:
     latest_cmg = _latest_date(daily_context, "monthly_average_cmg")
-    latest_coal = _latest_date(daily_context, "coal_price")
+    coal = coal_prices if coal_prices is not None and not coal_prices.empty else daily_context
+    latest_coal = _latest_date(coal, "coal_price")
     return f"Último CMg mensual: {_format_date(latest_cmg)} | Último precio carbón: {_format_date(latest_coal)}."
 
 

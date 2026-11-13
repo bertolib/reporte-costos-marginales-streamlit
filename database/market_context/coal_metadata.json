@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "instrument": "Newcastle Coal Futures",
+  "symbol": "NCFMc1",
+  "unit": "USD/t",
+  "source_url": "https://www.investing.com/commodities/newcastle-coal-futures-historical-data",
+  "source_file": "Newcastle Coal Futures Historical Data (3).csv",
+  "source_sha256": "4e4a87d20ddce8bcfa5a6ab8a9b41e242c0ab9d89d7e34532c32aa351c0fa494",
+  "imported_at": "2026-11-13T17:18:35.629644+00:00",
+  "coverage_start": "2026-01-02",
+  "coverage_end": "2026-11-12",
+  "rows": 5034,
+  "overlap": 44,
+  "revised_overlap": 10,
+  "new_sessions": 180,
+  "download_rows": 224,
+  "sha256": "e0b6cb2cda392a68d206ed92d5b629f1599b1370a77341d9339657e49d824360"
+}

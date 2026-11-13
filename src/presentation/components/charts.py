@@ -3,6 +3,7 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from src.analytics.aggregations import daily_average, daily_bess_arbitrage, heatmap_matrix, hourly_profile, monthly_average
 from src.domain.units import report_cost_unit
@@ -180,28 +181,32 @@ def daily_cmg_history_chart(daily_context: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def monthly_cmg_coal_chart(daily_context: pd.DataFrame) -> go.Figure:
-    """Return monthly historical CMg and coal price from the CMg Diario worksheet."""
+def monthly_cmg_coal_chart(daily_context: pd.DataFrame, coal_prices: pd.DataFrame | None = None) -> go.Figure:
+    """Compare monthly CMg and daily coal closes, each in its original unit."""
     data = daily_context[daily_context["date"] >= pd.Timestamp("2013-01-01")].copy()
-    data = data.dropna(subset=["monthly_average_cmg"])
-    fig = go.Figure()
+    cmg = data.dropna(subset=["monthly_average_cmg"])
+    coal = coal_prices if coal_prices is not None and not coal_prices.empty else data
+    coal = coal[(coal["date"] >= pd.Timestamp("2013-01-01")) & coal["coal_price"].notna()]
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
     fig.add_trace(
         go.Scatter(
-            x=data["date"],
-            y=data["coal_price"],
-            name="Precio Carbon",
+            x=coal["date"],
+            y=coal["coal_price"],
+            name="Carbón Newcastle (USD/t)",
             mode="lines",
             line=dict(color="#FFC000", width=2),
-        )
+            hovertemplate="Fecha: %{x|%d-%m-%Y}<br>Carbón: %{y:.2f} USD/t<extra></extra>",
+        ), secondary_y=True,
     )
     fig.add_trace(
         go.Scatter(
-            x=data["date"],
-            y=data["monthly_average_cmg"],
-            name="Cmg promedio Mensual",
+            x=cmg["date"],
+            y=cmg["monthly_average_cmg"],
+            name="CMg promedio mensual (USD/MWh)",
             mode="lines",
             line=dict(color="#C00000", width=2, shape="hv"),
-        )
+            hovertemplate="Fecha: %{x|%d-%m-%Y}<br>CMg: %{y:.2f} USD/MWh<extra></extra>",
+        ), secondary_y=False,
     )
     fig.update_layout(
         template=PLOTLY_TEMPLATE,
@@ -209,9 +214,10 @@ def monthly_cmg_coal_chart(daily_context: pd.DataFrame) -> go.Figure:
         legend=dict(orientation="h", yanchor="top", y=-0.18, xanchor="center", x=0.5),
         margin=dict(l=10, r=10, t=20, b=70),
         height=430,
-        yaxis_title="USD/MWh",
         xaxis_title="",
     )
+    fig.update_yaxes(title_text="CMg (USD/MWh)", secondary_y=False)
+    fig.update_yaxes(title_text="Carbón Newcastle (USD/t)", secondary_y=True, showgrid=False)
     return fig
 
 
