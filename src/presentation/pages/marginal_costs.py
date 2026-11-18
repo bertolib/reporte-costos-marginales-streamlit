@@ -61,14 +61,25 @@ def render_marginal_costs(observations: pd.DataFrame) -> None:
         coal_prices = _load_coal_prices(CoalPriceRepository().cache_token())
     except (OSError, ValueError, KeyError):
         st.warning("No se pudo cargar la actualización del carbón. Se muestra el histórico anterior.")
-    st.caption(_monthly_context_caption(daily_context, coal_prices))
+    monthly_cmg = _build_current_monthly_cmg_context(daily_context, observations)
+    chart_coal = coal_prices if coal_prices is not None and not coal_prices.empty else daily_context[["date", "coal_price"]]
+    st.caption(_monthly_context_caption(monthly_cmg, chart_coal))
+    live_from = monthly_cmg.attrs.get("live_from")
+    if live_from is not None:
+        st.caption(f"CMg de Mejillones 110 en USD/MWh desde {_format_month_title(live_from).lower()}, "
+                   "calculado con los datos cargados del reporte. Histórico anterior: Excel de contexto.")
+    else:
+        st.warning("No hay datos reales de Mejillones 110 disponibles para actualizar la comparación mensual.")
+    options = ["Valores originales · un solo eje"]
+    if not monthly_cmg.empty:
+        options.append("Índice base 100")
     comparison = st.selectbox(
         "Forma de comparación",
-        ["Valores originales · un solo eje", "Índice base 100"],
+        options,
         key="context_coal_comparison",
     )
     mode = "original" if comparison == "Valores originales · un solo eje" else "index"
-    figure = monthly_cmg_coal_chart(daily_context, coal_prices, comparison_mode=mode)
+    figure = monthly_cmg_coal_chart(monthly_cmg, chart_coal, comparison_mode=mode)
     if mode == "original":
         st.caption("Unidades diferentes: las distancias y cruces entre las líneas no representan diferencias de costo.")
     else:
@@ -259,7 +270,12 @@ def _latest_actual_month(actual_mejillones: pd.DataFrame) -> pd.Timestamp | None
 
 def _build_mejillones_actual_monthly_average(observations: pd.DataFrame) -> pd.DataFrame:
     """Return actual monthly average for Mejillones 110."""
-    actual = observations[observations["node_name"] == "Mejillones 110"].copy()
+    selected = observations["node_id"].eq("cmg_mej_110") if "node_id" in observations else observations["node_name"].eq("Mejillones 110")
+    if "unit" in observations:
+        selected &= observations["unit"].str.lower().eq("usd/mwh")
+    if "scenario" in observations:
+        selected &= observations["scenario"].eq("actual")
+    actual = observations[selected].copy()
     if actual.empty:
         return pd.DataFrame(columns=["target_month", "target_label", "actual_cmg", "actual_until"])
 
@@ -274,6 +290,24 @@ def _build_mejillones_actual_monthly_average(observations: pd.DataFrame) -> pd.D
     monthly = monthly.rename(columns={"month": "target_month", "average_cost": "actual_cmg"})
     monthly["target_label"] = monthly["target_month"].map(_format_month_label)
     return monthly[["target_month", "target_label", "actual_cmg", "actual_until"]].sort_values("target_month")
+
+
+def _build_current_monthly_cmg_context(daily_context: pd.DataFrame, observations: pd.DataFrame) -> pd.DataFrame:
+    """Use verified Mejillones monthly means wherever report observations exist.
+
+    Excel supplies only the earlier historical segment. A missing month in the
+    report is never silently filled with an old Excel monthly value.
+    """
+    actual = _build_mejillones_actual_monthly_average(observations)
+    if actual.empty:
+        return daily_context.iloc[:0][["date", "monthly_average_cmg", "coal_price"]].copy()
+    first_month = actual["target_month"].min()
+    earlier = daily_context[daily_context["date"] < first_month][["date", "monthly_average_cmg"]].copy()
+    current = actual.rename(columns={"actual_until": "date", "actual_cmg": "monthly_average_cmg"})
+    result = pd.concat([earlier, current[["date", "monthly_average_cmg"]]], ignore_index=True).sort_values("date")
+    result["coal_price"] = float("nan")
+    result.attrs["live_from"] = first_month
+    return result
 
 
 def _cen_projection_evolution_chart(evolution: pd.DataFrame, actual_mejillones: pd.DataFrame) -> go.Figure:

@@ -6,7 +6,7 @@ import pytest
 from scripts import update_coal_prices as updater
 from src.infrastructure.repositories.coal_price_repository import CoalPriceRepository
 from src.presentation.components.charts import monthly_cmg_coal_chart
-from src.presentation.pages.marginal_costs import _monthly_context_caption
+from src.presentation.pages.marginal_costs import _monthly_context_caption, _build_current_monthly_cmg_context
 
 
 def test_download_parses_us_dates_and_prices(tmp_path):
@@ -78,6 +78,30 @@ def test_monthly_means_and_common_base_100_do_not_modify_original_values():
     assert indexed.layout.meta["base_month"] == "2026-09"
     assert daily.monthly_average_cmg.tolist() == [10., 30., 40.]
     assert coal.coal_price.tolist() == [100., 200., 300., 145.]
+
+
+def test_monthly_cmg_uses_actual_mejillones_usd_and_never_fills_report_gaps_from_excel():
+    history = pd.DataFrame({"date": pd.to_datetime(["2024-12-31", "2025-01-31", "2025-02-28"]),
+                            "monthly_average_cmg": [11., 999., 888.], "coal_price": [90., 95., 100.]})
+    observations = pd.DataFrame({
+        "timestamp": pd.to_datetime(["2025-01-01", "2025-01-02", "2025-03-10", "2025-01-01", "2025-04-01", "2025-01-01"]),
+        "node_name": ["Mejillones 110"] * 3 + ["Chaca 110", "Mejillones 110", "Mejillones 110"],
+        "node_id": ["cmg_mej_110"] * 3 + ["cmg_chaca_110_clp", "cmg_mej_110", "cmg_mej_110"],
+        "zone": ["Norte"] * 6,
+        "value": [10., 30., 50., 1000., 5000., 9000.],
+        "unit": ["USD/MWh"] * 3 + ["CLP/kWh", "USD/MWh", "CLP/kWh"],
+        "scenario": ["actual"] * 4 + ["projected", "actual"],
+    })
+    original = observations.copy(deep=True)
+    current = _build_current_monthly_cmg_context(history, observations)
+    monthly = current.set_index("date").monthly_average_cmg.resample("MS").mean()
+    assert monthly.loc["2024-12-01"] == 11.
+    assert monthly.loc["2025-01-01"] == 20.
+    assert pd.isna(monthly.loc["2025-02-01"])
+    assert monthly.loc["2025-03-01"] == 50.
+    assert current.date.max() == pd.Timestamp("2025-03-10")
+    assert current.attrs["live_from"] == pd.Timestamp("2025-01-01")
+    pd.testing.assert_frame_equal(observations, original)
 
 
 def test_import_is_verified_and_dry_run_does_not_write(tmp_path, monkeypatch):

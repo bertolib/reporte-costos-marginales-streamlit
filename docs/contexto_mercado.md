@@ -94,14 +94,18 @@ proceso con los mismos Excel conserva los mismos cortes de informacion.
 | Costos marginales de las barras | TSV en `data` | `Actualizar_datos_web.bat` | Supabase y respaldo |
 | Contexto Mercado Electrico | Los dos Excel de la carpeta principal | `Actualizar_contexto_web.bat` | Tablas de contexto publicadas en GitHub |
 
-La unica conexion entre ambos es la comparacion con el promedio real de
-Mejillones: el contexto lee esa serie del reporte actualizado, sin modificarla.
+Las comparaciones con el promedio real de Mejillones y el tramo reciente de
+CMg mensual leen la serie del reporte actualizado, sin modificarla.
 
 ## Actualizar solamente el carbon del grafico mensual
 
 El grafico mensual tiene una serie independiente de cierres diarios de futuros
 de carbon Newcastle (NCFMc1), expresada en USD por tonelada. El CMg mensual
-conserva su fuente del Excel y su unidad USD/MWh. El grafico muestra un solo
+se calcula con las observaciones reales de Mejillones 110 en USD/MWh del
+reporte (Supabase o su respaldo) desde el primer mes disponible, enero de 2025.
+El tramo anterior conserva la fuente historica del Excel y queda identificado
+como tal. No se sustituyen meses faltantes del reporte por valores viejos del Excel.
+El grafico muestra un solo
 eje con promedios mensuales: CMg en azul y carbon en amarillo discontinuo.
 Por defecto conserva los valores originales, con las unidades en la leyenda
 y un aviso de que las distancias entre series no representan diferencias de costo.
@@ -131,7 +135,7 @@ prioritaria para su ventana de fechas, conservando sesiones de negociacion
 sin rellenar fines de semana; el historico fuera de esa ventana se conserva.
 El programa informa las coincidencias y revisiones respecto al historico.
 
-Los resultados verificados quedan en `database/market_context/coal_prices.csv.gz`
+Los resultados verificados del carbon quedan en `database/market_context/coal_prices.csv.gz`
 y `coal_metadata.json`. Su publicacion no modifica Supabase, la generacion,
 las proyecciones ni los valores del CMg. La exportacion general desde Excel
 conserva estos dos archivos y no reemplaza la actualizacion del carbon.
