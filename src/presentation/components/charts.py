@@ -3,7 +3,6 @@
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 from src.analytics.aggregations import daily_average, daily_bess_arbitrage, heatmap_matrix, hourly_profile, monthly_average
 from src.domain.units import report_cost_unit
@@ -181,32 +180,49 @@ def daily_cmg_history_chart(daily_context: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def monthly_cmg_coal_chart(daily_context: pd.DataFrame, coal_prices: pd.DataFrame | None = None) -> go.Figure:
-    """Compare monthly CMg and daily coal closes, each in its original unit."""
+def monthly_cmg_coal_chart(daily_context: pd.DataFrame, coal_prices: pd.DataFrame | None = None,
+                          comparison_mode: str = "original") -> go.Figure:
+    """Compare monthly means on one axis, as original values or base-100 indices."""
+    if comparison_mode not in {"original", "index"}:
+        raise ValueError("Modo de comparacion no compatible.")
     data = daily_context[daily_context["date"] >= pd.Timestamp("2013-01-01")].copy()
-    cmg = data.dropna(subset=["monthly_average_cmg"])
+    cmg = data.dropna(subset=["monthly_average_cmg"]).set_index("date")["monthly_average_cmg"].resample("MS").mean()
     coal = coal_prices if coal_prices is not None and not coal_prices.empty else data
     coal = coal[(coal["date"] >= pd.Timestamp("2013-01-01")) & coal["coal_price"].notna()]
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    coal = coal.set_index("date")["coal_price"].resample("MS").mean()
+    monthly = pd.concat([cmg.rename("cmg"), coal.rename("coal")], axis=1).sort_index()
+    plotted = monthly.copy()
+    base_month = None
+    if comparison_mode == "index":
+        common = monthly.dropna()
+        common = common[(common != 0).all(axis=1)]
+        if common.empty:
+            raise ValueError("No hay un mes comun con valores distintos de cero para calcular el indice.")
+        base_month = common.index[0]
+        plotted = monthly.div(common.iloc[0]).mul(100)
+    indexed = comparison_mode == "index"
+    fig = go.Figure()
     fig.add_trace(
         go.Scatter(
-            x=coal["date"],
-            y=coal["coal_price"],
-            name="Carbón Newcastle (USD/t)",
+            x=plotted.index,
+            y=plotted["cmg"],
+            name="CMg mensual" if indexed else "CMg mensual · USD/MWh",
             mode="lines",
-            line=dict(color="#FFC000", width=2),
-            hovertemplate="Fecha: %{x|%d-%m-%Y}<br>Carbón: %{y:.2f} USD/t<extra></extra>",
-        ), secondary_y=True,
+            line=dict(color="#2F6ACB", width=2),
+            connectgaps=False,
+            hovertemplate="Mes: %{x|%m-%Y}<br>CMg: %{y:.2f} " + ("(índice)" if indexed else "USD/MWh") + "<extra></extra>",
+        ),
     )
     fig.add_trace(
         go.Scatter(
-            x=cmg["date"],
-            y=cmg["monthly_average_cmg"],
-            name="CMg promedio mensual (USD/MWh)",
+            x=plotted.index,
+            y=plotted["coal"],
+            name="Carbón Newcastle" if indexed else "Carbón Newcastle · USD/t",
             mode="lines",
-            line=dict(color="#C00000", width=2, shape="hv"),
-            hovertemplate="Fecha: %{x|%d-%m-%Y}<br>CMg: %{y:.2f} USD/MWh<extra></extra>",
-        ), secondary_y=False,
+            line=dict(color="#F5C845", width=2, dash="dash"),
+            connectgaps=False,
+            hovertemplate="Mes: %{x|%m-%Y}<br>Carbón: %{y:.2f} " + ("(índice)" if indexed else "USD/t") + "<extra></extra>",
+        ),
     )
     fig.update_layout(
         template=PLOTLY_TEMPLATE,
@@ -215,9 +231,16 @@ def monthly_cmg_coal_chart(daily_context: pd.DataFrame, coal_prices: pd.DataFram
         margin=dict(l=10, r=10, t=20, b=70),
         height=430,
         xaxis_title="",
+        yaxis_title="Índice base 100" if indexed else "Valor numérico · unidad según serie",
+        meta={"comparison_mode": comparison_mode,
+              "base_month": base_month.strftime("%Y-%m") if base_month is not None else None},
     )
-    fig.update_yaxes(title_text="CMg (USD/MWh)", secondary_y=False)
-    fig.update_yaxes(title_text="Carbón Newcastle (USD/t)", secondary_y=True, showgrid=False)
+    fig.update_yaxes(rangemode="tozero")
+    years = list(range(monthly.index.min().year, monthly.index.max().year + 1, 3)) if not monthly.empty else []
+    if years and years[-1] != monthly.index.max().year:
+        years.append(monthly.index.max().year)
+    fig.update_xaxes(tickformat="%Y", tickmode="array",
+                     tickvals=[pd.Timestamp(year=year, month=1, day=1) for year in years], showgrid=False)
     return fig
 
 

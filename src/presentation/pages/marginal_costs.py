@@ -62,9 +62,22 @@ def render_marginal_costs(observations: pd.DataFrame) -> None:
     except (OSError, ValueError, KeyError):
         st.warning("No se pudo cargar la actualización del carbón. Se muestra el histórico anterior.")
     st.caption(_monthly_context_caption(daily_context, coal_prices))
-    st.caption(f"CMg: USD/MWh (eje izquierdo) · Carbón Newcastle: USD/t (eje derecho). "
+    comparison = st.selectbox(
+        "Forma de comparación",
+        ["Valores originales · un solo eje", "Índice base 100"],
+        key="context_coal_comparison",
+    )
+    mode = "original" if comparison == "Valores originales · un solo eje" else "index"
+    figure = monthly_cmg_coal_chart(daily_context, coal_prices, comparison_mode=mode)
+    if mode == "original":
+        st.caption("Unidades diferentes: las distancias y cruces entre las líneas no representan diferencias de costo.")
+    else:
+        base = pd.Timestamp(figure.layout.meta["base_month"])
+        st.caption(f"Base común: {_format_month_title(base).lower()} = 100. "
+                   "150 equivale a un alza de 50 % respecto a la base de cada serie.")
+    st.plotly_chart(figure, width="stretch")
+    st.caption(f"Promedios mensuales de los datos disponibles; los meses incompletos son parciales. "
                f"Fuente de carbón: [Investing.com]({COAL_SOURCE}).")
-    st.plotly_chart(monthly_cmg_coal_chart(daily_context, coal_prices), width="stretch")
 
     st.subheader("Cmg promedio diario 2023 - 2026")
     st.caption(_daily_context_caption(daily_context))

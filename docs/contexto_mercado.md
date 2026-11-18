@@ -101,7 +101,13 @@ Mejillones: el contexto lee esa serie del reporte actualizado, sin modificarla.
 
 El grafico mensual tiene una serie independiente de cierres diarios de futuros
 de carbon Newcastle (NCFMc1), expresada en USD por tonelada. El CMg mensual
-conserva su fuente del Excel y su unidad USD/MWh. El grafico muestra dos ejes.
+conserva su fuente del Excel y su unidad USD/MWh. El grafico muestra un solo
+eje con promedios mensuales: CMg en azul y carbon en amarillo discontinuo.
+Por defecto conserva los valores originales, con las unidades en la leyenda
+y un aviso de que las distancias entre series no representan diferencias de costo.
+El selector tambien permite ver indices base 100, tomando el primer mes comun
+con valores distintos de cero (enero de 2013 en el historico actual).
+No se completan meses sin datos ni se extrapola el CMg hasta la fecha del carbon.
 
 Descargue de Investing.com un CSV con frecuencia diaria y columnas `Date` y
 `Price`, conservando el formato original en ingles (fechas mes/dia/ano).
